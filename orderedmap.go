@@ -1,6 +1,8 @@
 package orderedmap
 
 import (
+	"errors"
+	"sort"
 	"sync"
 )
 
@@ -65,10 +67,13 @@ func (m OrderedMap) GetOrder() []string {
 
 // Set a new order for this map, must contain all keys.
 func (m OrderedMap) SetOrder(order []string) error {
-	// TODO: Should add a check here to make sure that the slices are the same data
+	if !compareOrder(m.order, order) {
+		return errors.New("Provided order does not contain the same data as existing.")
+	}
 	m.Lock()
-	copy(m.order, o)
+	copy(m.order, order)
 	m.Unlock()
+	return nil
 }
 
 // Get the index in the order of a specific key
@@ -98,4 +103,29 @@ func (m OrderedMap) Count() int {
 	cnt := len(m.data)
 	m.RUnlock()
 	return cnt
+}
+
+// Compare two orders and determine if they have the same data even if not in the same order
+func compareOrder(f []string, s []string) bool {
+	// Check to see if the two slices have the same length, if not they obviously aren't the same
+	if len(f) != len (s) {
+		return false
+	}
+
+	// Let's copy our own slices, so we don't edit the originals
+	var tmp1 []string
+	var tmp2 []string
+	copy(tmp1, f)
+	copy(tmp2, s)
+
+	// Now we'll sort them and go through each index to make sure it's the same
+	sort.Strings(tmp1)
+	sort.Strings(tmp2)
+	for i, v := range f {
+		if s[i] != v {
+			return false
+		}
+	}
+
+	return true
 }
