@@ -9,7 +9,7 @@ import (
 type OrderedMap struct {
 	data  map[string]interface{}
 	order []string
-	sync.RWMutex
+	lock  sync.RWMutex
 }
 
 // Create a new ordered map object
@@ -22,10 +22,10 @@ func New() OrderedMap {
 
 // Add an object onto the end of the map
 func (m *OrderedMap) Add(key string, value interface{}) {
-	m.Lock()
+	m.lock.Lock()
 	m.data[key] = value
 	m.order = append(m.order, key)
-	m.Unlock()
+	m.lock.Unlock()
 }
 
 // Add an object to a specific position in the map
@@ -38,7 +38,7 @@ func (m *OrderedMap) Insert(position int, key string, value interface{}) error {
 		return errors.New("Position is less than 0.")
 	}
 
-	m.Lock()
+	m.lock.Lock()
 	m.data[key] = value
 	pre := m.order[:position]
 	post := m.order[position:]
@@ -46,33 +46,33 @@ func (m *OrderedMap) Insert(position int, key string, value interface{}) error {
 	copy(m.order, pre)
 	m.order = append(m.order, key)
 	m.order = append(m.order, post...)
-	m.Unlock()
+	m.lock.Unlock()
 
 	return nil
 }
 
 // Get a specific object out of the map based on its key
 func (m OrderedMap) GetKey(key string) (interface{}, bool) {
-	m.RLock()
+	m.lock.RLock()
 	data, ok := m.data[key]
-	m.RUnlock()
+	m.lock.RUnlock()
 	return data, ok
 }
 
 func (m OrderedMap) GetIndex(index int) (interface{}, bool) {
-	m.RLock()
+	m.lock.RLock()
 	key := m.order[index]
 	data, ok := m.data[key]
-	m.RUnlock()
+	m.lock.RUnlock()
 	return data, ok
 }
 
 // Get a slice of strings containing the current order
 func (m OrderedMap) GetOrder() []string {
-	m.RLock()
+	m.lock.RLock()
 	tmp := make([]string, len(m.order))
 	copy(tmp, m.order)
-	m.RUnlock()
+	m.lock.RUnlock()
 	return tmp
 }
 
@@ -81,22 +81,22 @@ func (m *OrderedMap) SetOrder(order []string) error {
 	if !compareOrder(m.order, order) {
 		return errors.New("Provided order does not contain the same data as existing.")
 	}
-	m.Lock()
+	m.lock.Lock()
 	copy(m.order, order)
-	m.Unlock()
+	m.lock.Unlock()
 	return nil
 }
 
 // Get the index in the order of a specific key
 func (m OrderedMap) IndexOf(key string) int {
-	m.RLock()
+	m.lock.RLock()
 	index := -1
 	for i := 0; i < len(m.order); i++ {
 		if m.order[i] == key {
 			index = i
 		}
 	}
-	m.RUnlock()
+	m.lock.RUnlock()
 	return index
 }
 
@@ -104,21 +104,21 @@ func (m OrderedMap) IndexOf(key string) int {
 func (m *OrderedMap) Delete(key string) {
 	idx := m.IndexOf(key)
 
-	m.Lock()
+	m.lock.Lock()
 	delete(m.data, key)
 	tmp := make([]string, len(m.order))
 	copy(tmp, m.order)
 	m.order = make([]string, len(tmp))
 
 	m.order = append(tmp[:idx], tmp[idx+1:]...)
-	m.Unlock()
+	m.lock.Unlock()
 }
 
 // Get the total size of the map
 func (m OrderedMap) Count() int {
-	m.RLock()
+	m.lock.RLock()
 	cnt := len(m.data)
-	m.RUnlock()
+	m.lock.RUnlock()
 	return cnt
 }
 
