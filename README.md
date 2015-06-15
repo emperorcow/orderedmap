@@ -4,7 +4,8 @@ in a protected and concurrent fashion. Map key must be a string, but the data
 can be anything.
 
 [![GoDoc](https://godoc.org/github.com/emperorcow/orderedmap?status.svg)](http://godoc.org/github.com/emperorcow/orderedmap)
-[![Build](https://travis-ci.org/emperorcow/orderedmap.svg)](https://travis-ci.org/emperorcow/orderedmap)
+[![Build Status](https://drone.io/github.com/emperorcow/orderedmap/status.png)](https://drone.io/github.com/emperorcow/orderedmap/latest)
+[![Coverage Status](https://coveralls.io/repos/emperorcow/orderedmap/badge.svg?branch=master)](https://coveralls.io/r/emperorcow/orderedmap?branch=master)
 
 # Usage #
 You'll first need to make a new map and add some data.  Create a new map using the New() function and then add some data in using the Set(Key, Val) function, which takes a key as a string, and any data type as the value:
