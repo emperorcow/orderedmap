@@ -1,7 +1,12 @@
+// Package orderedmap provides a map where the order of items is maintained.
+// Furthermore, access to contained data is done in a way that is protected and
+// concurrent.
 package orderedmap
 
 import (
+	"fmt"
 	"reflect"
+	"strconv"
 	"testing"
 )
 
@@ -50,7 +55,7 @@ func TestInsert(t *testing.T) {
 	}
 
 	if om.Count() != 5 {
-		t.Error("Map does not contain three items")
+		t.Error("Map does not contain correct number of items")
 	}
 
 	tmp := om.GetOrder()
@@ -59,6 +64,14 @@ func TestInsert(t *testing.T) {
 		t.Error("Index two is not the correct object name")
 	}
 
+	err = om.Insert(30, "six", TestData{ID: 6, Name: "six"})
+	if err == nil {
+		t.Error("No error was received when trying to insert above the range.")
+	}
+	err = om.Insert(-1, "six", TestData{ID: 6, Name: "six"})
+	if err == nil {
+		t.Error("No error was received when trying to insert negative value.")
+	}
 }
 
 func TestGetKey(t *testing.T) {
@@ -86,14 +99,14 @@ func TestGetIndex(t *testing.T) {
 	om.Add("two", TestData{ID: 2, Name: "two"})
 	om.Add("three", TestData{ID: 3, Name: "three"})
 
-	test, ok := om.GetIndex(1)
-	gotten := test.(TestData)
+	key, val, ok := om.GetIndex(1)
+	gotten := val.(TestData)
 
 	if !ok {
 		t.Error("Unable to get item from map by index")
 	}
 
-	if gotten.ID != 2 || gotten.Name != "two" {
+	if key != "two" || gotten.ID != 2 || gotten.Name != "two" {
 		t.Error("Wrong item was returned from map")
 	}
 }
@@ -132,6 +145,16 @@ func TestSetOrder(t *testing.T) {
 		t.Error("Second item was wrong")
 	} else if ord[2] != "two" {
 		t.Error("Third item was wrong")
+	}
+
+	err = om.SetOrder([]string{"three", "one", "two", "five", "eleventy"})
+	if err == nil {
+		t.Error("No error occured when trying to use an order that was too large")
+	}
+
+	err = om.SetOrder([]string{"three", "one", "five"})
+	if err == nil {
+		t.Error("No error occured when trying to use an order the right size, but with the wrong items")
 	}
 }
 
@@ -180,5 +203,74 @@ func TestCount(t *testing.T) {
 	om.Add("three", TestData{ID: 3, Name: "three"})
 	if om.Count() != 3 {
 		t.Error("Third count was wrong")
+	}
+}
+
+func TestIterator(t *testing.T) {
+	om := New()
+	for i := 0; i < 100; i++ {
+		str := strconv.Itoa(i)
+		om.Add(str, TestData{ID: i, Name: str})
+	}
+
+	itr := om.Iterator()
+	j := 0
+	for item := range itr.Loop() {
+		if item.Key != strconv.Itoa(j) {
+			t.Errorf("Index %v did not match", j)
+		}
+		j++
+	}
+}
+
+func TestIteratorBreak(t *testing.T) {
+	om := New()
+	for i := 0; i < 1000; i++ {
+		str := strconv.Itoa(i)
+		om.Add(str, TestData{ID: i, Name: str})
+	}
+
+	itr := om.Iterator()
+	j := 0
+	for _ = range itr.Loop() {
+		if j == 60 {
+			itr.Break()
+			break
+		}
+		j++
+	}
+}
+
+func ExampleIterator_full() {
+	om := New()
+
+	om.Add("1", "one")
+	om.Add("2", "two")
+	om.Add("3", "three")
+	om.Add("4", "four")
+	om.Add("5", "five")
+
+	iter := om.Iterator()
+	for data := range iter.Loop() {
+		fmt.Printf("%s > %v\n", data.Key, data.Val)
+	}
+}
+
+func ExampleIterator_break() {
+	om := New()
+
+	om.Add("1", "one")
+	om.Add("2", "two")
+	om.Add("3", "three")
+	om.Add("4", "four")
+	om.Add("5", "five")
+
+	iter := om.Iterator()
+	for data := range iter.Loop() {
+		if data.Key == "3" {
+			iter.Break()
+			break
+		}
+		fmt.Printf("%s > %v\n", data.Key, data.Val)
 	}
 }

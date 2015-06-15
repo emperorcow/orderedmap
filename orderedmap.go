@@ -59,12 +59,13 @@ func (m OrderedMap) GetKey(key string) (interface{}, bool) {
 	return data, ok
 }
 
-func (m OrderedMap) GetIndex(index int) (interface{}, bool) {
+// Get a specific object and it's key out of the map based on it's order index
+func (m OrderedMap) GetIndex(index int) (string, interface{}, bool) {
 	m.lock.RLock()
 	key := m.order[index]
 	data, ok := m.data[key]
 	m.lock.RUnlock()
-	return data, ok
+	return key, data, ok
 }
 
 // Get a slice of strings containing the current order
@@ -120,6 +121,46 @@ func (m OrderedMap) Count() int {
 	cnt := len(m.data)
 	m.lock.RUnlock()
 	return cnt
+}
+
+type OrderedMapIterator struct {
+	returnchan chan Tuple
+	breakchan  chan bool
+	data       *OrderedMap
+}
+
+type Tuple struct {
+	Key string
+	Val interface{}
+}
+
+func (m *OrderedMap) Iterator() OrderedMapIterator {
+	return OrderedMapIterator{
+		returnchan: make(chan Tuple),
+		breakchan:  make(chan bool),
+		data:       m,
+	}
+}
+
+func (it *OrderedMapIterator) Loop() <-chan Tuple {
+	go func() {
+		max := it.data.Count()
+
+		for i := 0; i < max; i++ {
+			k, v, ok := it.data.GetIndex(i)
+			if ok {
+				it.returnchan <- Tuple{k, v}
+			}
+		}
+
+		close(it.returnchan)
+	}()
+
+	return it.returnchan
+}
+
+func (it *OrderedMapIterator) Break() {
+
 }
 
 // Compare two orders and determine if they have the same data even if not in the same order
